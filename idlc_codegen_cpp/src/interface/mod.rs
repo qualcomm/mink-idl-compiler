@@ -74,7 +74,7 @@ pub fn emit_interface_impl(interface: &Interface) -> String {
         .iter()
         .skip(1)
         .flat_map(|iface| {
-            base_iface.push_str(&format!("I{} ", &iface.ident.to_string()));
+            base_iface.push_str(&format!("I{} ", iface.ident));
             iface.nodes.iter()
         })
         .map(|node| (node, false));

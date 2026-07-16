@@ -5,7 +5,7 @@
 pub struct EscapedIdent<'a>(&'a idlc_mir::Ident);
 impl std::fmt::Display for EscapedIdent<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "r#{}", &self.0)
+        write!(f, "r#{}", self.0)
     }
 }
 
