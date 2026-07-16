@@ -17,6 +17,57 @@ jobs:
       release_created: ${{ steps.rp.outputs.release_created }}
       tag_name:        ${{ steps.rp.outputs.tag_name }}
     steps:
+
+      - name: Debug - GitHub rate limits
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          echo "=== Rate Limits ==="
+          curl -s \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            https://api.github.com/rate_limit \
+            | jq .
+
+      - name: Debug - Release commit lookup
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          echo "=== Commit API ==="
+          curl -s \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            https://api.github.com/repos/qualcomm/mink-idl-compiler/commits/504ccf69e1185880f7bdde06ae34711a10456549 \
+            | jq .
+
+      - name: Debug - Files from failing commit
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          echo "=== Commit Files ==="
+          curl -s \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            https://api.github.com/repos/qualcomm/mink-idl-compiler/commits/504ccf69e1185880f7bdde06ae34711a10456549 \
+            | jq '.files'
+
+      - name: Debug - GraphQL repository lookup
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          echo "=== GraphQL ==="
+          curl -i \
+            -H "Authorization: bearer $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            https://api.github.com/graphql \
+            -d '{
+              "query":"{
+                repository(owner:\"qualcomm\",name:\"mink-idl-compiler\") {
+                  name
+                  defaultBranchRef {
+                    name
+                  }
+                }
+              }"
+            }'
+
       - uses: googleapis/release-please-action@v5
         id: rp
         with:
