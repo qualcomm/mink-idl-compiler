@@ -10,6 +10,7 @@ use super::serialization::TransportBuffer;
 
 #[derive(Debug, Default, Clone)]
 pub struct Invoke {
+    pub structs: Vec<String>,
     pub args: Vec<String>,
     pub pre: Vec<String>,
     pub post: Vec<String>,
@@ -22,6 +23,7 @@ pub struct Invoke {
 impl Invoke {
     pub fn new(function: &idlc_mir::Function, is_no_typed_objects: bool) -> Self {
         let mut me = Self {
+            structs: vec![],
             args: vec![],
             pre: vec![],
             post: vec![],
@@ -31,6 +33,10 @@ impl Invoke {
 
         idlc_codegen::functions::visit_params_with_bundling(function, &mut me);
         me
+    }
+
+    pub fn structs(&self) -> Vec<String> {
+        self.structs.clone()
     }
 
     pub fn args(&self) -> String {
@@ -64,13 +70,13 @@ impl Invoke {
 impl idlc_codegen::functions::ParameterVisitor for Invoke {
     fn visit_input_primitive_buffer(&mut self, ident: &idlc_mir::Ident, ty: idlc_mir::Primitive) {
         let idx = self.idx();
-        let sz = ty.size();
         let ty: &str = change_primitive(ty);
         self.pre.push(format!(
             "{CONST} {ty} *{ident}_ptr = ({CONST} {ty}*){ARGS}[{idx}].b.ptr;"
         ));
-        self.pre
-            .push(format!("size_t {ident}_len = {ARGS}[{idx}].b.size / {sz};"));
+        self.pre.push(format!(
+            "size_t {ident}_len = {ARGS}[{idx}].b.size / sizeof({ty});"
+        ));
     }
 
     fn visit_input_untyped_buffer(&mut self, ident: &idlc_mir::Ident) {
@@ -118,10 +124,10 @@ impl idlc_codegen::functions::ParameterVisitor for Invoke {
 
     fn visit_input_primitive(&mut self, ident: &idlc_mir::Ident, ty: idlc_mir::Primitive) {
         let idx = self.idx();
-        let sz = ty.size();
         let ty: &str = change_primitive(ty);
         let name = format!("*{}_ptr", ident);
-        self.args.push(format!("{ARGS}[{idx}].b.size != {sz}"));
+        self.args
+            .push(format!("{ARGS}[{idx}].b.size != sizeof({ty})"));
         self.pre.push(format!(
             "{CONST} {ty} {name} = ({CONST} {ty}*){ARGS}[{idx}].b.ptr;"
         ));
@@ -132,31 +138,27 @@ impl idlc_codegen::functions::ParameterVisitor for Invoke {
         packed_primitives: &idlc_codegen::serialization::PackedPrimitives,
     ) {
         let packer = super::serialization::PackedPrimitives::new(packed_primitives);
-        let Some(TransportBuffer {
-            mut definition,
-            size,
-            ..
-        }) = packer.bi_definition(// true
-        )
-        else {
+        let Some(TransportBuffer { definition, .. }) = packer.bi_definition() else {
             unreachable!()
         };
         let idx = self.idx();
-        self.args.push(format!("{ARGS}[{idx}].b.size != {size}"));
-        self.pre.push(format!("{CONST} {}", definition.remove(0)));
-        self.pre.extend(definition);
+        self.structs.extend(definition);
+        self.structs.last_mut().unwrap().push_str(&format!(";"));
+        // This is a bit of a hack but since we know this function only gets
+        // called for input bundles, we can use the name of the one and only
+        // bundle for this method when we do the size checks.
+        self.args
+            .push(format!("{ARGS}[{idx}].b.size != sizeof({BI})"));
         self.pre
-            .last_mut()
-            .unwrap()
-            .push_str(&format!(" *i = (const struct {BI}*){ARGS}[{idx}].b.ptr;"));
+            .push(format!("{CONST} struct {BI} *i = (const struct {BI}*){ARGS}[{idx}].b.ptr;"));
     }
 
     fn visit_input_big_struct(&mut self, ident: &idlc_mir::Ident, ty: &idlc_mir::StructInner) {
         let idx = self.idx();
         let name = format!("{}_ptr", ident);
-        let sz = ty.size();
         let ty_ident = ty.ident.to_string();
-        self.args.push(format!("{ARGS}[{idx}].b.size != {sz}"));
+        self.args
+            .push(format!("{ARGS}[{idx}].b.size != sizeof({ty_ident})"));
         if ty.contains_interfaces() {
             self.pre.push(format!(
                 "{ty_ident} {name} = *({CONST} {ty_ident}*){ARGS}[{idx}].b.ptr;"
@@ -197,15 +199,16 @@ impl idlc_codegen::functions::ParameterVisitor for Invoke {
 
     fn visit_output_primitive_buffer(&mut self, ident: &idlc_mir::Ident, ty: idlc_mir::Primitive) {
         let idx = self.idx();
-        let sz = ty.size();
         let ty: &str = change_primitive(ty);
         let name = format!("*{}_ptr", ident);
         self.pre
             .push(format!("{ty} {name} = ({ty}*){ARGS}[{idx}].b.ptr;"));
-        self.pre
-            .push(format!("size_t {ident}_len = {ARGS}[{idx}].b.size / {sz};"));
-        self.post
-            .push(format!("{ARGS}[{idx}].b.size = {ident}_len * {sz};"));
+        self.pre.push(format!(
+            "size_t {ident}_len = {ARGS}[{idx}].b.size / sizeof({ty});"
+        ));
+        self.post.push(format!(
+            "{ARGS}[{idx}].b.size = {ident}_len * sizeof({ty});"
+        ));
     }
 
     fn visit_output_untyped_buffer(&mut self, ident: &idlc_mir::Ident) {
@@ -264,9 +267,9 @@ impl idlc_codegen::functions::ParameterVisitor for Invoke {
     fn visit_output_big_struct(&mut self, ident: &idlc_mir::Ident, ty: &idlc_mir::StructInner) {
         let idx = self.idx();
         let name = format!("{}_ptr", ident);
-        let sz = ty.size();
         let ty_ident = ty.ident.to_string();
-        self.args.push(format!("{ARGS}[{idx}].b.size != {sz}"));
+        self.args
+            .push(format!("{ARGS}[{idx}].b.size != sizeof({ty_ident})"));
         if ty.contains_interfaces() {
             self.pre.push(format!(
                 "{ty_ident} *{name} = &(*({ty_ident}*){ARGS}[{idx}].b.ptr);"
@@ -300,10 +303,10 @@ impl idlc_codegen::functions::ParameterVisitor for Invoke {
 
     fn visit_output_primitive(&mut self, ident: &idlc_mir::Ident, ty: idlc_mir::Primitive) {
         let idx = self.idx();
-        let sz = ty.size();
         let ty: &str = change_primitive(ty);
         let name = format!("*{}_ptr", ident);
-        self.args.push(format!("{ARGS}[{idx}].b.size != {sz}"));
+        self.args
+            .push(format!("{ARGS}[{idx}].b.size != sizeof({ty})"));
         self.pre
             .push(format!("{ty} {name} = ({ty}*){ARGS}[{idx}].b.ptr;"));
     }
@@ -313,20 +316,19 @@ impl idlc_codegen::functions::ParameterVisitor for Invoke {
         packed_primitives: &idlc_codegen::serialization::PackedPrimitives,
     ) {
         let packer = super::serialization::PackedPrimitives::new(packed_primitives);
-        let Some(TransportBuffer {
-            definition, size, ..
-        }) = packer.bo_definition(// true
-        )
-        else {
+        let Some(TransportBuffer { definition, .. }) = packer.bo_definition() else {
             unreachable!()
         };
         let idx = self.idx();
-        self.args.push(format!("{ARGS}[{idx}].b.size != {size}"));
-        self.pre.extend(definition);
+        self.structs.extend(definition);
+        self.structs.last_mut().unwrap().push_str(&format!(";"));
+        // This is a bit of a hack but since we know this function only gets
+        // called for output bundles, we can use the name of the one and only
+        // bundle for this method when we do the size checks.
+        self.args
+            .push(format!("{ARGS}[{idx}].b.size != sizeof({BO})"));
         self.pre
-            .last_mut()
-            .unwrap()
-            .push_str(&format!(" *o = (struct {BO}*){ARGS}[{idx}].b.ptr;"));
+            .push(format!("struct {BO} *o = (struct {BO}*){ARGS}[{idx}].b.ptr;"));
     }
 
     fn visit_output_object(&mut self, ident: &idlc_mir::Ident, ty: Option<&str>) {
@@ -368,6 +370,7 @@ pub fn emit(
     );
 
     let mut body = vec![];
+    body.extend(invoke.structs());
     body.push(format!(
         "if ({COUNTS} != ObjectCounts_pack({counts}){}) {{",
         invoke.args()

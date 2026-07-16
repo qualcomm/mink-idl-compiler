@@ -190,7 +190,7 @@ pub fn emit_interface_invoke(interface: &Interface, is_no_typed_objects: bool) -
                 return prefix##retain(me); \
             }} \
             case Object_OP_version: {{ \
-                if (k != ObjectCounts_pack(0, 1, 0, 0) || a[0].b.size != 4) {{ \
+                if (k != ObjectCounts_pack(0, 1, 0, 0) || a[0].b.size != sizeof(uint32_t)) {{ \
                   break; \
                 }} \
                 uint32_t *a_ptr = (uint32_t*)a[0].b.ptr; \

@@ -126,9 +126,10 @@ impl idlc_codegen::functions::ParameterVisitor for Invoke {
         // self.0.visit_output_big_struct(ident, ty);
         let idx = self.0.idx();
         let name = format!("{}_ptr", ident);
-        let sz = ty.size();
         let ty_ident = ty.ident.to_string();
-        self.0.args.push(format!("{ARGS}[{idx}].b.size != {sz}"));
+        self.0
+            .args
+            .push(format!("{ARGS}[{idx}].b.size != sizeof({ty_ident})"));
         if ty.contains_interfaces() {
             let name = format!("{}_ptr", ident);
             self.0.pre.push(format!(
@@ -190,6 +191,7 @@ pub fn emit(
     );
 
     let mut body = vec![];
+    body.extend(invoke.0.structs());
     body.push(format!(
         "if ({COUNTS} != ObjectCounts_pack({counts}){}){{",
         invoke.0.args()
