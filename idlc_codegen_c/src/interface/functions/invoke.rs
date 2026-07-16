@@ -149,8 +149,9 @@ impl idlc_codegen::functions::ParameterVisitor for Invoke {
         // bundle for this method when we do the size checks.
         self.args
             .push(format!("{ARGS}[{idx}].b.size != sizeof({BI})"));
-        self.pre
-            .push(format!("{CONST} struct {BI} *i = (const struct {BI}*){ARGS}[{idx}].b.ptr;"));
+        self.pre.push(format!(
+            "{CONST} struct {BI} *i = (const struct {BI}*){ARGS}[{idx}].b.ptr;"
+        ));
     }
 
     fn visit_input_big_struct(&mut self, ident: &idlc_mir::Ident, ty: &idlc_mir::StructInner) {
@@ -327,8 +328,9 @@ impl idlc_codegen::functions::ParameterVisitor for Invoke {
         // bundle for this method when we do the size checks.
         self.args
             .push(format!("{ARGS}[{idx}].b.size != sizeof({BO})"));
-        self.pre
-            .push(format!("struct {BO} *o = (struct {BO}*){ARGS}[{idx}].b.ptr;"));
+        self.pre.push(format!(
+            "struct {BO} *o = (struct {BO}*){ARGS}[{idx}].b.ptr;"
+        ));
     }
 
     fn visit_output_object(&mut self, ident: &idlc_mir::Ident, ty: Option<&str>) {
