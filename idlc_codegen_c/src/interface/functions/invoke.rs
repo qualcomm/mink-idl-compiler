@@ -143,7 +143,7 @@ impl idlc_codegen::functions::ParameterVisitor for Invoke {
         };
         let idx = self.idx();
         self.structs.extend(definition);
-        self.structs.last_mut().unwrap().push_str(&format!(";"));
+        self.structs.last_mut().unwrap().push(';');
         // This is a bit of a hack but since we know this function only gets
         // called for input bundles, we can use the name of the one and only
         // bundle for this method when we do the size checks.
@@ -322,7 +322,7 @@ impl idlc_codegen::functions::ParameterVisitor for Invoke {
         };
         let idx = self.idx();
         self.structs.extend(definition);
-        self.structs.last_mut().unwrap().push_str(&format!(";"));
+        self.structs.last_mut().unwrap().push(';');
         // This is a bit of a hack but since we know this function only gets
         // called for output bundles, we can use the name of the one and only
         // bundle for this method when we do the size checks.
