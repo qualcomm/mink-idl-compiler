@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.2](https://github.com/qualcomm/mink-idl-compiler/compare/v1.0.1...v1.0.2) (2026-07-27)
+
+
+### Miscellaneous
+
+* Address cargo clippy 1.97.0 issues ([504ccf6](https://github.com/qualcomm/mink-idl-compiler/commit/504ccf69e1185880f7bdde06ae34711a10456549))
+* **deps:** bump actions/checkout from 6 to 7 ([#69](https://github.com/qualcomm/mink-idl-compiler/issues/69)) ([4686c97](https://github.com/qualcomm/mink-idl-compiler/commit/4686c9745552904022da7db92c8e20aef3c0b431))
+
+
+### Documentation
+
+* test release please ([0e02d2b](https://github.com/qualcomm/mink-idl-compiler/commit/0e02d2b58be28724aa46a6eef8154dee29309691))
+
 ## [1.0.1](https://github.com/qualcomm/mink-idl-compiler/compare/v1.0.0...v1.0.1) (2026-06-10)
 
 
