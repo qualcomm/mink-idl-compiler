@@ -177,7 +177,7 @@ class {ident}ImplBase : protected ImplBase, public I{ident} {{
 {INDENT}virtual int32_t invoke(ObjectOp {OP_CODE}, ObjectArg* {ARGS}, ObjectCounts {COUNTS}) {{
 {INDENT}{INDENT}switch (ObjectOp_methodID({OP_CODE})) {{
 {INDENT}{INDENT}{INDENT}case Object_OP_version: {{
-{INDENT}{INDENT}{INDENT}{INDENT}if (k != ObjectCounts_pack(0, 1, 0, 0) || a[0].b.size != 4){{
+{INDENT}{INDENT}{INDENT}{INDENT}if (k != ObjectCounts_pack(0, 1, 0, 0) || a[0].b.size != sizeof(uint32_t)){{
 {INDENT}{INDENT}{INDENT}{INDENT}{INDENT}break;
 {INDENT}{INDENT}{INDENT}{INDENT}}}
 {INDENT}{INDENT}{INDENT}{INDENT}uint32_t *version_ptr = (uint32_t*)a[0].b.ptr;
