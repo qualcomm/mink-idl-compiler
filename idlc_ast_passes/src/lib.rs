@@ -36,7 +36,7 @@ pub enum Error {
     AstParse(#[from] idlc_ast::Error),
     #[error("Duplicate definition of '{}'", occ1.ident)]
     DuplicateDefinition { occ1: Ident, occ2: Ident },
-    #[error("Couldn't find defintions for the symbol `{0}`")]
+    #[error("Couldn't find definitions for the symbol `{0}`")]
     UnresolvedSymbol(String),
     #[error("Struct requirements not met: `{0}`")]
     StructVerifier(#[from] struct_verifier::Error),
